@@ -50,10 +50,17 @@ def ask_question(
     db: Session = Depends(get_db),
     current_user: str = Depends(auth.get_current_user)
 ):
-    validate_question(payload.question)
-    sql = generate_sql(payload.question)
-    validate_sql(sql)
-    result = execute_query(sql)
+    try:
+        validate_question(payload.question)
+        sql = generate_sql(payload.question)
+        validate_sql(sql)
+        result = execute_query(sql)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception:
+        raise HTTPException(status_code=503, detail="AI or database error, try again")
+    
+    
 
     user = db.query(models.User).filter(models.User.username == current_user).first()
     log_entry = models.QueryLog(
